@@ -27,10 +27,10 @@ export function ConsumerProfile() {
     (async () => {
       try {
         let custId = id;
-        let res = await fetch(`/customers/${custId}`);
+        let res = await fetch(`http://localhost:8080/customers/${custId}`);
         if (res.status === 404) {
           // try search by the stored identifier (auth UID / email etc.)
-          const s = await fetch(`/customers/search?q=${encodeURIComponent(custId)}`);
+          const s = await fetch(`http://localhost:8080/customers/search?q=${encodeURIComponent(custId)}`);
           if (s.ok) {
             const found = await s.json();
             if (found && found.customer_id) {
@@ -44,20 +44,20 @@ export function ConsumerProfile() {
         localStorage.setItem("instinct_customer_id", custId);
 
         // Load customer, wallet, solar using the resolved id
-        const res2 = await fetch(`/customers/${custId}`);
+        const res2 = await fetch(`http://localhost:8080/customers/${custId}`);
         if (res2.ok) {
           const j = await res2.json();
           setCustomerType(j.customer_type || "postpaid");
           setWalletBalance(j.wallet_balance ?? null);
         }
 
-        const w = await fetch(`/customers/${custId}/wallet`);
+        const w = await fetch(`http://localhost:8080/customers/${custId}/wallet`);
         if (w.ok) {
           const jw = await w.json();
           setWalletBalance(jw.wallet_balance ?? null);
         }
 
-        const s2 = await fetch(`/customers/${custId}/solar`);
+        const s2 = await fetch(`http://localhost:8080/customers/${custId}/solar`);
         if (s2.ok) {
           const js = await s2.json();
           setSolarRecords(js.records || []);
@@ -70,7 +70,7 @@ export function ConsumerProfile() {
 
   const setType = async (t: string) => {
     try {
-      const res = await fetch(`/customers/${consumerId}/type`, {
+      const res = await fetch(`http://localhost:8080/customers/${consumerId}/type`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customer_type: t }),
@@ -85,7 +85,7 @@ export function ConsumerProfile() {
 
   const topUp = async (amount: number) => {
     try {
-      const res = await fetch(`/customers/${consumerId}/wallet/topup`, {
+      const res = await fetch(`http://localhost:8080/customers/${consumerId}/wallet/topup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),
@@ -101,7 +101,7 @@ export function ConsumerProfile() {
 
   const addSolarRecord = async (input_kwh: number, output_kwh: number) => {
     try {
-      const res = await fetch(`/customers/${consumerId}/solar/record`, {
+      const res = await fetch(`http://localhost:8080/customers/${consumerId}/solar/record`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input_kwh, output_kwh }),

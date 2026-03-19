@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,13 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Download, Wallet, ArrowUpRight, ArrowDownRight, CheckCircle2, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const transactions = [
-  { id: "TXN-101", date: "Feb 18, 2026", amount: 500, type: "Credit", status: "Success", desc: "Wallet Top-up" },
-  { id: "TXN-102", date: "Feb 01, 2026", amount: 1450, type: "Debit", status: "Success", desc: "Monthly Bill – Jan 2026" },
-  { id: "TXN-103", date: "Jan 15, 2026", amount: 1000, type: "Credit", status: "Success", desc: "Wallet Top-up" },
-  { id: "TXN-104", date: "Jan 01, 2026", amount: 1620, type: "Debit", status: "Success", desc: "Monthly Bill – Dec 2025" },
-];
 
 const quickAmounts = [100, 200, 500, 1000, 2000];
 
@@ -160,33 +153,70 @@ function BillDetail() {
 
 export function ConsumerBilling() {
   const { toast } = useToast();
-  const [balance, setBalance] = useState(1450.50);
+  const [balance, setBalance] = useState(0);
   const [rechargeAmount, setRechargeAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [txns, setTxns] = useState(transactions);
+  const [txns, setTxns] = useState<any[]>([]);
+  const [consumerId, setConsumerId] = useState<string | null>(null);
 
-  const handleRecharge = () => {
+  const fetchWallet = useCallback(async (cid: string) => {
+    try {
+      const res = await fetch(`http://localhost:8080/customers/${cid}/wallet`);
+      if (res.ok) {
+        const j = await res.json();
+        setBalance(j.wallet_balance ?? 0);
+        setTxns(j.transactions?.map((t: any) => ({
+          id: t._id,
+          date: new Date(t.timestamp).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+          amount: t.amount,
+          type: t.type === "credit" ? "Credit" : "Debit",
+          status: "Success",
+          desc: t.by === "ui" ? "Wallet Top-up" : "Consumption Deduction",
+        })) || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const id = localStorage.getItem("instinct_customer_id");
+    if (id) {
+      setConsumerId(id);
+      fetchWallet(id);
+    }
+  }, [fetchWallet]);
+
+  const handleRecharge = async () => {
     const amt = Number(rechargeAmount);
     if (!rechargeAmount || isNaN(amt) || amt <= 0) {
       toast({ title: "Invalid Amount", description: "Please enter a valid recharge amount.", variant: "destructive" });
       return;
     }
+    if (!consumerId) return;
+
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch(`http://localhost:8080/customers/${consumerId}/wallet/topup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amt }),
+      });
+      if (res.ok) {
+        toast({ title: "Top-up Successful! 🎉", description: `₹${amt.toFixed(2)} added to your wallet.` });
+        setRechargeAmount("");
+        fetchWallet(consumerId);
+      } else {
+        toast({ title: "Top-up Failed", description: "Backend error.", variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: "Error", description: "Could not connect to backend.", variant: "destructive" });
+    } finally {
       setIsProcessing(false);
-      setBalance(prev => prev + amt);
-      setRechargeAmount("");
-      const now = new Date();
-      setTxns(prev => [{
-        id: `TXN-${Date.now()}`,
-        date: now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-        amount: amt, type: "Credit", status: "Success", desc: "Wallet Top-up",
-      }, ...prev]);
-      toast({ title: "Top-up Successful! 🎉", description: `₹${amt.toFixed(2)} added to your wallet.` });
-    }, 1200);
+    }
   };
 
-  const daysRemaining = Math.round(balance / (billData.netPayable / 31));
+  const daysRemaining = Math.max(0, Math.round(balance / (billData.netPayable / 31)));
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">

@@ -163,6 +163,10 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
   const [liveTariff, setLiveTariff] = useState(8.50);
   const [tariffLastUpdated, setTariffLastUpdated] = useState<string | null>(null);
 
+  const [customerType, setCustomerType] = useState<string>("postpaid");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [solarRecords, setSolarRecords] = useState<any[]>([]);
+
   const { toast } = useToast();
 
   const handleAgentModeOpen = useCallback(() => {
@@ -212,7 +216,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
   }, [toast]);
 
   useEffect(() => {
-    (async () => {
+    const initializeDashboard = async () => {
       // Resolve stored id (auth UID or DB customer_id)
       const stored = localStorage.getItem("instinct_customer_id");
       if (!stored) {
@@ -238,7 +242,29 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
       localStorage.setItem("instinct_customer_id", resolved);
       fetchDevices(resolved);
 
-      // Fetch live tariff
+      // Fetch customer details (type, wallet)
+      try {
+        const cRes = await fetch(`http://localhost:8080/customers/${resolved}`);
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          setCustomerType(cData.customer_type || "postpaid");
+          setWalletBalance(cData.wallet_balance ?? null);
+        }
+        
+        // If solar, fetch solar records too
+        const sRes = await fetch(`http://localhost:8080/customers/${resolved}/solar`);
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          setSolarRecords(sData.records || []);
+        }
+      } catch (e) {
+        console.error("Failed to fetch customer details:", e);
+      }
+    };
+
+    initializeDashboard();
+
+    // Fetch live tariff
     const fetchTariff = async () => {
       try {
         const res = await fetch("http://localhost:8080/tariff");
@@ -256,8 +282,8 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
         console.error("Failed to fetch tariff:", e);
       }
     };
+
     fetchTariff();
-    // Poll tariff every 30 seconds
     const tariffInterval = setInterval(fetchTariff, 30000);
     return () => clearInterval(tariffInterval);
   }, [fetchDevices]);
@@ -464,18 +490,52 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
           </Card>
 
 
-          {/* Predicted */}
+          {/* Predicted / Wallet / Solar — DYNAMIC */}
           <Card className="bg-slate-900 border-slate-800 text-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Predicted Today</p>
-              <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center">
-                <BrainCircuit className="h-3.5 w-3.5 text-emerald-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3">
-              <p className="text-xl font-black font-mono text-emerald-400 tabular-nums">{predictedKWh.toFixed(1)} <span className="text-xs font-normal text-slate-400">kWh</span></p>
-              <p className="text-[10px] mt-0.5 text-slate-500">≈ ₹{predictedCost.toFixed(0)}</p>
-            </CardContent>
+            {customerType === "prepaid" ? (
+              <>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wallet Balance</p>
+                  <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center">
+                    <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <p className="text-xl font-black font-mono text-emerald-400 tabular-nums">
+                    ₹{walletBalance?.toLocaleString() ?? "0"}
+                  </p>
+                  <p className="text-[10px] mt-0.5 text-slate-500">Prepaid Account</p>
+                </CardContent>
+              </>
+            ) : customerType === "solar" ? (
+              <>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Net Generation</p>
+                  <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center">
+                    <Sun className="h-3.5 w-3.5 text-amber-400" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <p className="text-xl font-black font-mono text-amber-400 tabular-nums">
+                    {(solarRecords.reduce((acc, r) => acc + (r.output_kwh - r.input_kwh), 0)).toFixed(1)} <span className="text-xs font-normal text-slate-400">kWh</span>
+                  </p>
+                  <p className="text-[10px] mt-0.5 text-slate-500">Solar Feed-in</p>
+                </CardContent>
+              </>
+            ) : (
+              <>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Predicted Today</p>
+                  <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center">
+                    <BrainCircuit className="h-3.5 w-3.5 text-emerald-400" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <p className="text-xl font-black font-mono text-emerald-400 tabular-nums">{predictedKWh.toFixed(1)} <span className="text-xs font-normal text-slate-400">kWh</span></p>
+                  <p className="text-[10px] mt-0.5 text-slate-500">≈ ₹{predictedCost.toFixed(0)}</p>
+                </CardContent>
+              </>
+            )}
           </Card>
         </div>
 
