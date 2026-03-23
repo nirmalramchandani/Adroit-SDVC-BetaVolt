@@ -1,75 +1,69 @@
-# ⚡ Instinct | Smart Energy Management System
+# BetaVolt: Smart Energy Management System
 
-Instinct (BetaVolt Instinct 4.0) is a cutting-edge **Smart Energy Super App** designed to bridge the gap between grid operators and consumers. It provides real-time telemetry, AI-driven energy insights, and a seamless management interface for both administrative and consumer roles.
-
----
-
-## 🚀 Quick Links
-- **[Development Dashboard](DEVELOPMENT.md)** - Detailed project status and roadmap.
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical deep dive into the stack.
-- **[AI Capabilities](docs/AI_AGENT.md)** - Understanding the Genkit integration.
+Welcome to the BetaVolt frontend repository. BetaVolt is an advanced Smart Energy Management Application designed to create a seamless connection between grid operators and energy consumers. Our platform provides real-time telemetry, energy insights, and a comprehensive management interface tailored for both administrative oversight and consumer utilization.
 
 ---
 
-## ✨ Key Features
-
-### 👤 Consumer Experience
-- **Real-time Home Hub**: Monitor solar production, battery storage, and home consumption in one unified view.
-- **AI Concierge**: A Genkit-powered AI agent that helps users understand their energy bills and provides personalized optimization tips.
-- **Smart Analytics**: Deep-dive into energy patterns with interactive charts powered by Recharts.
-- **Dynamic Billing**: Access invoices, track payment history, and manage prepaid/postpaid accounts.
-
-### 🛠️ Admin CommandCenter
-- **Grid Telemetry**: High-level overview of total grid load, active consumers, and system alerts.
-- **Intelligent Ticketing**: Auto-assigning support tickets using AI to ensure rapid resolution.
-- **Project Hub**: Manage fleet-scale installations and large-scale energy projects.
+## Quick Links
+- **[Development Dashboard](DEVELOPMENT.md)** — Detailed project status and strategic roadmap.
+- **[Architecture Guide](docs/ARCHITECTURE.md)** — A comprehensive technical overview of the application stack.
 
 ---
 
-## 🛠️ Technology Stack
+## Key Features
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | [Next.js 15](https://nextjs.org/) (App Router), [React 19](https://react.dev/) |
-| **Styling** | [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), [Lucide](https://lucide.dev/) |
-| **AI Engine**| [Firebase Genkit](https://github.com/firebase/genkit), [Google Gemini](https://deepmind.google/technologies/gemini/) |
-| **Backend** | [Firebase](https://firebase.google.com/), [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) |
-| **Data Viz** | [Recharts](https://recharts.org/) |
-| **Validation**| [Zod](https://zod.dev/) |
+### Consumer Experience
+- **Real-Time Home Hub**: A unified dashboard to monitor solar production, battery storage capacity, and overall home energy consumption.
+- **Advanced Analytics**: Interactive, Recharts-powered data visualizations that offer deep insights into energy usage patterns.
+- **Dynamic Billing**: A robust module for accessing invoices, tracking payment histories, and managing prepaid or postpaid accounts.
 
----
-
-## 🏃 Getting Started
-
-1. **Clone and Install**:
-```bash
-npm install
-```
-
-2. **Environment Setup**:
-Create a `.env` file with your Firebase and Google Generative AI keys.
-
-3. **Run Development Server**:
-```bash
-npm run dev
-# Dashboard available at http://localhost:9002
-```
-
-4. **Run AI Development Tools**:
-```bash
-npm run genkit:dev
-```
+### Administrative Command Center
+- **Grid Telemetry**: High-level overviews of total grid load, active consumer metrics, and critical system alerts.
+- **Intelligent Ticketing**: A streamlined support ticketing system designed to help operators assign issues and ensure rapid, effective resolution.
+- **Project Hub**: Tools for managing fleet-scale installations and coordinating large-scale energy infrastructure projects.
 
 ---
 
-## 📈 Project Status
+## Technology Stack
 
-- [x] **Core UI/UX Structure**: Premium dark mode ready shell and navigation.
-- [x] **AI Integration**: Genkit flow for consumption analysis implemented.
-- [/] **Consumer Modules**: Analytics and Support are in advanced stages.
-- [/] **Admin CommandCenter**: Core telemetry views implemented with placeholders for live data.
-- [ ] **Live Telemetry Connection**: WebSocket implementation for real-time grid updates (In Progress).
+| Component | Technology |
+|---|---|
+| **Frontend Framework** | [Next.js 15](https://nextjs.org/) (App Router), [React 19](https://react.dev/) |
+| **Styling & Components**| [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), [Lucide](https://lucide.dev/) |
+| **Backend & Data** | [Firebase](https://firebase.google.com/), [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations) |
+| **Data Visualization** | [Recharts](https://recharts.org/) |
+| **Data Validation** | [Zod](https://zod.dev/) |
 
 ---
 
-Developed with ❤️ by the **BetaVolt Team**.
+## Getting Started
+
+To set up the development environment locally, please follow these steps:
+
+1. **Install Dependencies**:
+   Please ensure you have Node.js installed, then run:
+   ```bash
+   npm install
+   ```
+
+2. **Environment Configuration**:
+   Create a `.env` file in the root directory and ensure you provide your Firebase configuration credentials.
+
+3. **Start the Development Server**:
+   ```bash
+   npm run dev
+   ```
+   The application dashboard will be accessible at `http://localhost:9002`.
+
+---
+
+## Project Status
+
+- [x] **Core UI/UX Structure**: Implementation of the primary navigation and dark mode interface.
+- [/] **Consumer Modules**: Development of the Analytics and Support features is currently progressing.
+- [/] **Administrative Command Center**: Core telemetry views have been established, continuously integrating live data feeds.
+- [ ] **Live Telemetry Connection**: Development of the WebSocket implementation for real-time grid updates is underway.
+
+---
+
+Thank you for your interest in the BetaVolt Smart Energy Management System. This project is proudly maintained and developed by the BetaVolt Team. We appreciate your support and contributions to building a smarter energy grid.

@@ -1,3 +1,0 @@
-.next/types/app/admin/page.ts(12,13): error TS2344: Type 'OmitWithTag<typeof import("D:/instinct/instinct_frontend/src/app/admin/page"), "metadata" | "default" | "config" | "generateStaticParams" | "revalidate" | "dynamic" | "dynamicParams" | ... 7 more ... | "experimental_ppr", "">' does not satisfy the constraint '{ [x: string]: never; }'.
-  Property 'SystemMapOverlay' is incompatible with index signature.
-    Type '({ region, sectors }: { region?: string | undefined; sectors?: { id: string; name: string; load: number; status: string; x: number; y: number; peakTime: string; }[] | undefined; }) => Element' is not assignable to type 'never'.

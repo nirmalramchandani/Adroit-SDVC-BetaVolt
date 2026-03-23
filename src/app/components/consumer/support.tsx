@@ -291,16 +291,18 @@ function ChatbotModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyping, sendMessage, bottomRef }: { 
+function AgentGreetingCard({ onConnect, messages, setMessages, inputText, setInputText, isTyping, setIsTyping, sendMessage, bottomRef }: { 
   onConnect: () => void; 
   messages: ChatMessage[];
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   inputText: string;
   setInputText: (text: string) => void;
   isTyping: boolean;
+  setIsTyping: (typing: boolean) => void;
   sendMessage: (text: string) => void;
   bottomRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const WS_URL = "ws://localhost:8080/BetaVoltSupport/";
+  const WS_URL = "wss://betavolt-978156456889.asia-south1.run.app/BetaVoltSupport/";
   const USER_AUDIO_SAMPLE_RATE = 16000;
   const AI_SAMPLE_RATE = 24000;
 
@@ -334,24 +336,30 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
 
   const playAudioChunk = useCallback((base64Data: string) => {
     try {
-      if (!aiAudioContext.current) return;
-      if (aiAudioContext.current.state === "suspended") aiAudioContext.current.resume();
+      const ctx = aiAudioContext.current;
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume();
+
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
       const int16Data = new Int16Array(bytes.buffer);
       const float32Data = new Float32Array(int16Data.length);
       for (let i = 0; i < int16Data.length; i++) float32Data[i] = int16Data[i] / 32768.0;
-      const buffer = aiAudioContext.current.createBuffer(1, float32Data.length, AI_SAMPLE_RATE);
+
+      const buffer = ctx.createBuffer(1, float32Data.length, AI_SAMPLE_RATE);
       buffer.copyToChannel(float32Data, 0);
-      const source = aiAudioContext.current.createBufferSource();
+
+      const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(aiAudioContext.current.destination);
-      const ctx = aiAudioContext.current;
+      source.connect(ctx.destination);
+
       const now = ctx.currentTime;
       if (nextStartTime.current < now + 0.1) nextStartTime.current = now + 0.1;
+      
       source.start(nextStartTime.current);
       nextStartTime.current += buffer.duration;
+      
       pendingSources.current.push(source);
       setIsAiSpeaking(true);
       source.onended = () => {
@@ -361,14 +369,18 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
           speakingTimer.current = setTimeout(() => setIsAiSpeaking(false), 200);
         }
       };
+      console.log(`[support-ws] Played AI audio chunk: ${float32Data.length} samples`);
     } catch (e) { console.error("playAudioChunk error:", e); }
-  }, []);
+  }, [setIsAiSpeaking]);
 
   const startCall = useCallback(async () => {
     try {
       setCallStatus("connecting");
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      aiAudioContext.current = new AudioCtx({ sampleRate: AI_SAMPLE_RATE });
+      if (!aiAudioContext.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        aiAudioContext.current = new AudioCtx({ sampleRate: AI_SAMPLE_RATE });
+      }
+      if (aiAudioContext.current.state === "suspended") await aiAudioContext.current.resume();
 
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("Browser does not support media devices or is not in a secure context");
@@ -378,7 +390,9 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: USER_AUDIO_SAMPLE_RATE },
       });
 
-      webSocket.current = new WebSocket(WS_URL);
+      const customerId = localStorage.getItem("instinct_customer_id") || "cust-123";
+      webSocket.current = new WebSocket(`${WS_URL}?customer_id=${encodeURIComponent(customerId)}`);
+      console.log("[support-ws] Connecting to", WS_URL);
 
       webSocket.current.onopen = () => {
         setCallStatus("active");
@@ -410,7 +424,37 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
       webSocket.current.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === "audio") playAudioChunk(msg.data);
+          console.log("[support-ws] Received message type:", msg.type);
+          if (msg.type === "audio") {
+            // Explicitly resume to satisfy browser autoplay policy on first message
+            if (aiAudioContext.current?.state === "suspended") {
+              aiAudioContext.current.resume().catch(console.warn);
+            }
+            playAudioChunk(msg.data);
+          } else if (msg.type === "text") {
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              // If last was agent and from WS, append (for streaming feel if backend supports)
+              if (last && last.role === "agent" && last.id.startsWith("ws-a-")) {
+                const updated = [...prev];
+                updated[updated.length - 1] = { ...last, text: last.text + msg.data };
+                return updated;
+              }
+              return [...prev, { id: `ws-a-${Date.now()}`, role: "agent", text: msg.data, timestamp: new Date() }];
+            });
+            setIsTyping(false);
+          } else if (msg.type === "usertext") {
+            // This is the transcription of what the user just said
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last && last.role === "user" && last.id.startsWith("ws-u-")) {
+                const updated = [...prev];
+                updated[updated.length - 1] = { ...last, text: last.text + " " + msg.data };
+                return updated;
+              }
+              return [...prev, { id: `ws-u-${Date.now()}`, role: "user", text: msg.data, timestamp: new Date() }];
+            });
+          }
         } catch (e) { console.warn("WS parse error:", e); }
       };
 
@@ -445,6 +489,16 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
     if (phase !== "banner") return;
     setActiveMode(mode);
     setPhase("transitioning");
+    
+    // Create & Resume context on user action as required by browsers
+    if (!aiAudioContext.current) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      aiAudioContext.current = new AudioCtx({ sampleRate: AI_SAMPLE_RATE });
+    }
+    if (aiAudioContext.current?.state === "suspended") {
+      aiAudioContext.current.resume().catch(console.warn);
+    }
+
     setTimeout(() => {
       setPhase("chat");
       if (mode === "chat") onConnect();
@@ -517,21 +571,32 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
           </div>
 
           {/* Two side-by-side buttons on the right */}
-          <div className="flex flex-row gap-3">
-            <button
-              onClick={() => handleButtonClick("chat")}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 shadow-lg shadow-black/10 transition-all duration-200"
-            >
-              <MessageSquare className="w-4 h-4" />
-              Chat with agent
-            </button>
-            <button
-              onClick={() => handleButtonClick("call")}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 shadow-lg shadow-black/10 transition-all duration-200"
-            >
-              <Phone className="w-4 h-4" />
-              Call agent
-            </button>
+          <div className="flex flex-col items-center gap-4">
+            {/* Notice for Customer ID 1004 */}
+            <div className="bg-emerald-600/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 flex flex-col items-center gap-1 shadow-xl animate-in fade-in zoom-in duration-700">
+               <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                 <span className="text-white text-[10px] font-bold tracking-widest uppercase opacity-90">Developer Access</span>
+               </div>
+               <p className="text-white text-xs font-medium">Use Customer ID <span className="text-emerald-300 font-bold underline underline-offset-4 decoration-2">1004</span> for Agent Demo</p>
+            </div>
+
+            <div className="flex flex-row gap-3">
+              <button
+                onClick={() => handleButtonClick("chat")}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 shadow-lg shadow-black/10 transition-all duration-200"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat with agent
+              </button>
+              <button
+                onClick={() => handleButtonClick("call")}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 shadow-lg shadow-black/10 transition-all duration-200"
+              >
+                <Phone className="w-4 h-4" />
+                Call agent
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -670,21 +735,83 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
         </button>
       </div>
 
-      {/* Main Body (Avatar & Status) */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
-        {/* Large Avatar container with ring */}
-        <div className="relative w-32 h-32 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-          {/* Inner ring */}
-          <div className="absolute inset-2 rounded-full bg-emerald-100/50 dark:bg-emerald-900/30 flex items-center justify-center">
-            <Bot className={cn("w-16 h-16 transition-colors", callStatus === "active" ? "text-emerald-500" : "text-slate-400")} />
-          </div>
+      {/* Main Body (Avatar & Messages) */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Compressed Header when messages exist */}
+        <div className={cn(
+          "flex flex-col items-center justify-center transition-all duration-500",
+          messages.length > 0 ? "py-3 bg-slate-50 dark:bg-slate-800/40 border-b dark:border-slate-800" : "flex-1 p-6"
+        )}>
+           <div className={cn(
+             "relative rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-all duration-500",
+             messages.length > 0 ? "w-14 h-14" : "w-32 h-32"
+           )}>
+             <div className="absolute inset-1 rounded-full bg-emerald-100/50 dark:bg-emerald-900/30 flex items-center justify-center">
+               <Bot className={cn("transition-all duration-500", 
+                 messages.length > 0 ? "w-7 h-7" : "w-16 h-16",
+                 callStatus === "active" ? "text-emerald-500" : "text-slate-400"
+               )} />
+             </div>
+             {callStatus === "active" && (
+               <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse" />
+             )}
+           </div>
+           
+           <div className={cn("text-center mt-2", messages.length > 0 ? "hidden sm:block" : "block")}>
+             <h2 className={cn("font-semibold text-emerald-700 dark:text-emerald-400 transition-all", 
+               messages.length > 0 ? "text-sm" : "text-xl"
+             )}>
+               BetaVolt Assistant
+             </h2>
+             <p className="text-xs text-slate-500 dark:text-slate-400">
+               {callStatus === "idle" ? "Disconnected" : callStatus === "connecting" ? "Connecting..." : "Live Support Session"}
+             </p>
+           </div>
         </div>
-        
-        <div className="text-center space-y-1 mt-4">
-          <h2 className="text-xl font-semibold text-emerald-700 dark:text-emerald-400">BetaVolt Assistant</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {callStatus === "idle" ? "Disconnected" : callStatus === "connecting" ? "Connecting..." : "00:00"}
-          </p>
+
+        {/* Message List */}
+        <div className={cn(
+          "flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth bg-slate-50/30 dark:bg-slate-950/20",
+          messages.length <= 0 && "hidden"
+        )}>
+          {messages.map((msg) => (
+            <div key={msg.id} className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}>
+              <div className={cn(
+                "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm",
+                msg.role === "agent" ? "bg-emerald-500 text-white" : "bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border dark:border-slate-600"
+              )}>
+                {msg.role === "agent" ? <Zap className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+              </div>
+              <div className={cn("flex flex-col gap-1 max-w-[80%]", msg.role === "user" && "items-end")}>
+                <div className={cn(
+                  "px-3 py-2 rounded-2xl text-[13px] leading-relaxed shadow-sm border",
+                  msg.role === "agent" 
+                    ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm border-slate-100 dark:border-slate-700" 
+                    : "bg-emerald-500 text-white rounded-tr-sm border-emerald-400"
+                )}>
+                  {formatText(msg.text)}
+                </div>
+                <p className="text-[9px] text-slate-400 px-1 font-medium opacity-70">
+                  {msg.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+            </div>
+          ))}
+          {isTyping && (
+            <div className="flex gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Zap className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm px-3 py-2 shadow-sm">
+                <div className="flex gap-1 items-center h-4">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
         </div>
       </div>
 
@@ -692,7 +819,18 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
       <div className="p-4 flex flex-col items-center gap-6">
         {/* Input Pill */}
         <form
-          onSubmit={(e) => { e.preventDefault(); sendMessage(inputText); }}
+          onSubmit={(e) => { 
+            e.preventDefault(); 
+            const text = inputText.trim();
+            if (!text) return;
+            
+            // Send via WS if open
+            if (webSocket.current?.readyState === WebSocket.OPEN) {
+              webSocket.current.send(JSON.stringify({ type: "text", data: text }));
+            }
+            
+            sendMessage(text);
+          }}
           className="w-full relative flex items-center"
         >
           <input
@@ -742,15 +880,7 @@ function AgentGreetingCard({ onConnect, messages, inputText, setInputText, isTyp
    Main ConsumerSupport Component
 ──────────────────────────────────────────────────────────────── */
 export function ConsumerSupport() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "init",
-      role: "agent",
-      text: "Hi Akshay! 👋 I'm **Volt**, your BetaVolt AI assistant. I'm here to help you with billing, outages, meter issues, and more. What can I help you with today?",
-      timestamp: new Date(),
-      options: ["Billing issue", "Meter problem", "Power outage", "General query"],
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -759,7 +889,7 @@ export function ConsumerSupport() {
   useEffect(() => {
     const custId = localStorage.getItem("instinct_customer_id");
     if (custId) {
-      fetch(`http://localhost:8080/customers/${custId}/support-tickets`)
+      fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${custId}/support-tickets`)
         .then(res => res.json())
         .then(data => setMyTickets(data || []))
         .catch(console.error);
@@ -767,7 +897,13 @@ export function ConsumerSupport() {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only scroll the specific chat container, not the whole page
+    if (bottomRef.current && bottomRef.current.parentElement) {
+      bottomRef.current.parentElement.scrollTo({
+        top: bottomRef.current.parentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, [messages, isTyping]);
 
   const sendMessage = (text: string) => {
@@ -781,21 +917,7 @@ export function ConsumerSupport() {
     };
     setMessages((prev) => [...prev, userMsg]);
     setInputText("");
-    setIsTyping(true);
-
-    // Simulate agent typing delay
-    setTimeout(() => {
-      const response = getAgentResponse(text);
-      const agentMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
-        role: "agent",
-        text: response.text,
-        timestamp: new Date(),
-        options: response.options,
-      };
-      setMessages((prev) => [...prev, agentMsg]);
-      setIsTyping(false);
-    }, 900 + Math.random() * 600);
+    setIsTyping(true); // Signal we're waiting for live response from WebSocket
   };
 
   return (
@@ -812,9 +934,11 @@ export function ConsumerSupport() {
         <AgentGreetingCard
           onConnect={() => {}}
           messages={messages}
+          setMessages={setMessages}
           inputText={inputText}
           setInputText={setInputText}
           isTyping={isTyping}
+          setIsTyping={setIsTyping}
           sendMessage={sendMessage}
           bottomRef={bottomRef}
         />
