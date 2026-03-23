@@ -192,13 +192,13 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
   // --- API DATA FETCHING ---
   const fetchDevices = useCallback(async (customerId: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/customers/${customerId}/devices`);
+      const res = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${customerId}/devices`);
       if (res.ok) {
         const data = await res.json();
         if (data.length === 0) {
           // Auto-seed if empty
-          await fetch(`http://localhost:8080/customers/${customerId}/devices/seed`, { method: "POST" });
-          const retryRes = await fetch(`http://localhost:8080/customers/${customerId}/devices`);
+          await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${customerId}/devices/seed`, { method: "POST" });
+          const retryRes = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${customerId}/devices`);
           if (retryRes.ok) {
             const retryData = await retryRes.json();
             setDevices(retryData.map((d: any) => ({ ...d, id: d.device_id, icon: ALL_DEVICE_ICONS[d.icon_key] || Zap, powerConsumption: d.power_consumption_watts, usageHoursToday: d.usage_hours_today, expectedUsage: d.expected_usage })));
@@ -224,9 +224,9 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
         localStorage.setItem("instinct_customer_id", resolved);
       }
       try {
-        const exists = await fetch(`http://localhost:8080/customers/${encodeURIComponent(resolved)}`);
+        const exists = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${encodeURIComponent(resolved)}`);
         if (exists.status === 404) {
-          const s = await fetch(`http://localhost:8080/customers/search?q=${encodeURIComponent(resolved)}`);
+          const s = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/search?q=${encodeURIComponent(resolved)}`);
           if (s.ok) {
             const found = await s.json();
             if (found && found.customer_id) resolved = found.customer_id;
@@ -242,7 +242,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
 
       // Fetch customer details (type, wallet)
       try {
-        const cRes = await fetch(`http://localhost:8080/customers/${resolved}`);
+        const cRes = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${resolved}`);
         if (cRes.ok) {
           const cData = await cRes.json();
           setCustomerType(cData.customer_type || "postpaid");
@@ -250,7 +250,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
         }
         
         // If solar, fetch solar records too
-        const sRes = await fetch(`http://localhost:8080/customers/${resolved}/solar`);
+        const sRes = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${resolved}/solar`);
         if (sRes.ok) {
           const sData = await sRes.json();
           setSolarRecords(sData.records || []);
@@ -265,7 +265,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
     // Fetch live tariff
     const fetchTariff = async () => {
       try {
-        const res = await fetch("http://localhost:8080/tariff");
+        const res = await fetch("https://betavolt-978156456889.asia-south1.run.app/tariff");
         if (res.ok) {
           const data = await res.json();
           if (data && data.current_rate_INR) {
@@ -312,7 +312,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
     try {
        const cid = customerIdRef.current;
        if (!cid) throw new Error("No customer id available");
-       await fetch(`http://localhost:8080/customers/${cid}/devices/${deviceId}`, {
+       await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${cid}/devices/${deviceId}`, {
          method: "PUT",
          headers: { "Content-Type": "application/json" },
          body: JSON.stringify({ status: status ? "on" : "off" })
@@ -329,7 +329,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
     try {
       const cid = customerIdRef.current;
       if (!cid) throw new Error("No customer id available");
-      await fetch(`http://localhost:8080/customers/${cid}/devices/${id}`, { method: "DELETE" });
+      await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${cid}/devices/${id}`, { method: "DELETE" });
     } catch(e) { console.error("Delete failed", e); }
   };
 
@@ -343,7 +343,7 @@ export function DashboardClient({ onAgentModeChange }: { onAgentModeChange?: (ac
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8080/customers/${cid}/devices`, {
+      const res = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${cid}/devices`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName, icon_key: newIconKey, power_consumption_watts: w, status: "off" })
       });

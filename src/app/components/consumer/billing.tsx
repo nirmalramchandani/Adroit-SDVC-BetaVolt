@@ -162,7 +162,7 @@ export function ConsumerBilling() {
 
   const fetchWallet = useCallback(async (cid: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/customers/${cid}/wallet`);
+      const res = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${cid}/wallet`);
       if (res.ok) {
         const j = await res.json();
         setBalance(j.wallet_balance ?? 0);
@@ -182,7 +182,7 @@ export function ConsumerBilling() {
 
   const fetchBills = useCallback(async (cid: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/customers/${cid}/bills`);
+      const res = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${cid}/bills`);
       if (res.ok) {
         const j = await res.json();
         setBills(j || []);
@@ -211,7 +211,7 @@ export function ConsumerBilling() {
 
     setIsProcessing(true);
     try {
-      const res = await fetch(`http://localhost:8080/customers/${consumerId}/wallet/topup`, {
+      const res = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/${consumerId}/wallet/topup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: amt }),

@@ -572,14 +572,7 @@ function AgentGreetingCard({ onConnect, messages, setMessages, inputText, setInp
 
           {/* Two side-by-side buttons on the right */}
           <div className="flex flex-col items-center gap-4">
-            {/* Notice for Customer ID 1004 */}
-            <div className="bg-emerald-600/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 flex flex-col items-center gap-1 shadow-xl animate-in fade-in zoom-in duration-700">
-               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                 <span className="text-white text-[10px] font-bold tracking-widest uppercase opacity-90">Developer Access</span>
-               </div>
-               <p className="text-white text-xs font-medium">Use Customer ID <span className="text-emerald-300 font-bold underline underline-offset-4 decoration-2">1004</span> for Agent Demo</p>
-            </div>
+            
 
             <div className="flex flex-row gap-3">
               <button
@@ -885,6 +878,12 @@ export function ConsumerSupport() {
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [myTickets, setMyTickets] = useState<any[]>([]);
+  const [expandedTickets, setExpandedTickets] = useState<string[]>([]);
+  const toggleExpand = (id: string) => {
+    setExpandedTickets(prev => 
+      prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]
+    );
+  };
 
   useEffect(() => {
     const custId = localStorage.getItem("instinct_customer_id");
@@ -923,10 +922,20 @@ export function ConsumerSupport() {
   return (
     <>
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Support &amp; Complaints</h1>
-            <p className="text-muted-foreground mt-1">Raise a new ticket or track your existing requests.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <h1 className="text-3xl font-bold tracking-tight">Support &amp; Complaints</h1>
+              
+              {/* Notice for Customer ID 1004 */}
+              <div className="inline-flex bg-emerald-600/10 dark:bg-emerald-400/10 border border-emerald-600/20 dark:border-emerald-400/20 rounded-full px-4 py-1.5 items-center gap-2.5 animate-in fade-in slide-in-from-left duration-700">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-emerald-700 dark:text-emerald-300 text-[13px] font-semibold tracking-tight">
+                  Developer Access: Use Customer ID <span className="font-bold underline underline-offset-2 decoration-2 decoration-emerald-500/50">1004</span> for live agent demo
+                </p>
+              </div>
+            </div>
+            <p className="text-muted-foreground mt-1">Raise a new ticket or track your existing requests with our AI-powered support.</p>
           </div>
         </div>
 
@@ -943,54 +952,39 @@ export function ConsumerSupport() {
           bottomRef={bottomRef}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Support Form */}
-          <Card className="lg:col-span-1 shadow-md">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12">
+          {/* New Ticket Form */}
+          <Card className="shadow-md h-fit">
             <CardHeader>
-              <CardTitle>Raise New Ticket</CardTitle>
-              <CardDescription>Describe your issue and our team will assist you.</CardDescription>
+              <CardTitle>Raise a Ticket</CardTitle>
+              <CardDescription>Explain your issue and we'll assign a tech agent</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Issue Category</Label>
-                <select
-                  id="category"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option>Billing Issue</option>
-                  <option>Meter Fault</option>
-                  <option>Power Outage</option>
-                  <option>New Connection</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="desc">Description</Label>
-                <Textarea id="desc" placeholder="Please provide detailed information about your issue..." className="min-h-[100px]" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Attach Photo of Meter (Optional)</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                  <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+            <CardContent>
+              <form className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Issue Category</Label>
+                  <select id="category" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option>Billing & Payment</option>
+                    <option>Meter Fault</option>
+                    <option>Power Outage</option>
+                    <option>New Connection</option>
+                    <option>Solar Integration</option>
+                    <option>Other</option>
+                  </select>
                 </div>
-              </div>
-
-              <Button className="w-full mt-2">Submit Ticket</Button>
-
-              <div className="pt-1 border-t">
-                <p className="text-xs text-muted-foreground mb-2">Prefer instant help?</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400"
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  Ask Volt AI instead
-                </Button>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea id="description" placeholder="Describe the problem in detail..." className="min-h-[120px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Attachment (Optional)</Label>
+                  <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground hover:bg-slate-50 transition-colors cursor-pointer">
+                    <UploadCloud className="h-8 w-8 mb-2" />
+                    <span className="text-xs">Click or drag to upload (Max 5MB)</span>
+                  </div>
+                </div>
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20">Submit Ticket</Button>
+              </form>
             </CardContent>
           </Card>
 
@@ -1001,29 +995,53 @@ export function ConsumerSupport() {
               <CardDescription>Status of your recently raised complaints</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              <Table className="min-w-[600px]">
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ticket ID</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status / Assigned To</TableHead>
+                    <TableHead className="w-[120px]">Ticket ID</TableHead>
+                    <TableHead className="w-[140px]">Category</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-[100px]">Date</TableHead>
+                    <TableHead className="w-[160px]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {myTickets.map((t) => (
-                    <TableRow key={t._id}>
-                      <TableCell className="font-medium align-top py-4">#INC-{t._id.slice(-6).toUpperCase()}</TableCell>
-                      <TableCell className="align-top py-4">{t.issue_category}</TableCell>
-                      <TableCell className="align-top py-4">{t.created_at ? t.created_at.split("T")[0] : "N/A"}</TableCell>
-                      <TableCell className="py-4">
-                        <div className="space-y-1">
+                    <TableRow key={t._id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <TableCell className="font-bold text-blue-600 dark:text-blue-400 align-top py-5">
+                        #INC-{t._id.slice(-6).toUpperCase()}
+                      </TableCell>
+                      <TableCell className="align-top py-5 font-medium">
+                        {t.issue_category}
+                      </TableCell>
+                      <TableCell className="max-w-xs xl:max-w-md align-top py-5">
+                        <div className={cn(
+                          "text-sm text-slate-600 dark:text-slate-400 transition-all duration-300",
+                          !expandedTickets.includes(t._id) && "line-clamp-2"
+                        )}>
+                          {t.description || "No description provided."}
+                        </div>
+                        {t.description && t.description.length > 80 && (
+                          <button 
+                            onClick={() => toggleExpand(t._id)}
+                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 mt-2 flex items-center gap-1 transition-all"
+                          >
+                            {expandedTickets.includes(t._id) ? "Show less" : "Read more"}
+                            <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", expandedTickets.includes(t._id) && "rotate-90")} />
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-top py-5 text-slate-500 text-xs">
+                        {t.created_at ? t.created_at.split("T")[0] : "N/A"}
+                      </TableCell>
+                      <TableCell className="py-5 align-top">
+                        <div className="space-y-1.5">
                           {t.status === "RESOLVED" ? (
-                             <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                             <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50">
                                <CheckCircle2 className="mr-1 h-3 w-3" /> Resolved
                              </span>
                           ) : (
-                             <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                             <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
                                <Clock className="mr-1 h-3 w-3" /> {t.status}
                              </span>
                           )}

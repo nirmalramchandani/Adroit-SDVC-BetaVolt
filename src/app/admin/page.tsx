@@ -53,13 +53,13 @@ export default function IntellismartMasterDashboard() {
 
   useEffect(() => {
     // load slots
-    fetch("http://localhost:8080/tariff/slots")
+    fetch("https://betavolt-978156456889.asia-south1.run.app/tariff/slots")
       .then(res => res.json())
       .then(data => setSlotTariffs({ off_peak: data.off_peak, standard: data.standard, peak: data.peak }))
       .catch(console.error);
       
     // load support tickets for admin
-    fetch("http://localhost:8080/support-tickets")
+    fetch("https://betavolt-978156456889.asia-south1.run.app/support-tickets")
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -75,13 +75,13 @@ export default function IntellismartMasterDashboard() {
       });
 
     // load billing stats
-    fetch("http://localhost:8080/admin/billing/stats")
+    fetch("https://betavolt-978156456889.asia-south1.run.app/admin/billing/stats")
       .then(res => res.json())
       .then(data => setBillingStats(data))
       .catch(console.error);
 
     // load transactions (now bills)
-    fetch("http://localhost:8080/admin/billing/bills")
+    fetch("https://betavolt-978156456889.asia-south1.run.app/admin/billing/bills")
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -175,7 +175,7 @@ export default function IntellismartMasterDashboard() {
           if (!searchQuery) return;
           setSearchLoading(true);
           try {
-            const res = await fetch(`http://localhost:8080/customers/search?q=${searchQuery}`);
+            const res = await fetch(`https://betavolt-978156456889.asia-south1.run.app/customers/search?q=${searchQuery}`);
             const data = await res.json();
             console.log("Search Result:", data);
             if (data) {
@@ -613,7 +613,7 @@ export default function IntellismartMasterDashboard() {
       if (!tariffRate || isNaN(rate) || !tariffReason.trim()) return;
       setTariffStatus("loading");
       try {
-        const res = await fetch("http://localhost:8080/tariff", {
+        const res = await fetch("https://betavolt-978156456889.asia-south1.run.app/tariff", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rate, reason: tariffReason, user: tariffUser }),
@@ -711,7 +711,7 @@ export default function IntellismartMasterDashboard() {
             onClick={async () => {
               setSlotStatus("loading");
               try {
-                const res = await fetch("http://localhost:8080/tariff/slots", {
+                const res = await fetch("https://betavolt-978156456889.asia-south1.run.app/tariff/slots", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ ...slotTariffs, user: "admin" })
