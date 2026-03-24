@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap, ShieldCheck, BarChart3, ChevronRight, Activity, Smartphone, Play, Download, ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -41,7 +40,7 @@ export function LandingPage({ onLoginClick }: LandingPageProps) {
               variant="outline"
               className="border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-300 hover:text-white transition-all rounded-full px-4"
             >
-              <a href="/Instinct.apk" download>
+              <a href="https://drive.usercontent.google.com/download?id=1JaIAQAGMlaQF8wfsw9uggTl0jfUQ6Js_&export=download&authuser=0&confirm=t&uuid=45a399a1-27fb-41ef-9667-3b7304d9ffb1&at=AGN2oQ3JRj-Y2uUawV4fAjSIhQ92:1774273735952" download>
                 <Download className="mr-2 h-4 w-4 text-emerald-400" /> <span className="hidden sm:inline">Download APK</span><span className="inline sm:hidden">APK</span>
               </a>
             </Button>
@@ -84,30 +83,15 @@ export function LandingPage({ onLoginClick }: LandingPageProps) {
                 >
                   Enter BetaVolt <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline"
-                      className="w-full sm:w-auto h-14 px-8 rounded-full text-lg border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-300 hover:text-white transition-all hover:scale-105 hover:border-indigo-500/50"
-                    >
-                      <Play className="mr-2 h-5 w-5 text-indigo-400" /> Watch Demo
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-4xl border-white/10 bg-slate-950 p-0 overflow-hidden shadow-2xl shadow-black/80">
-                    <DialogTitle className="sr-only">App Demo Video</DialogTitle>
-                    <div className="aspect-video relative w-full bg-black flex items-center justify-center group">
-                      <video 
-                        className="w-full h-full object-contain" 
-                        controls 
-                        autoPlay 
-                        src="https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" 
-                        poster="/hero-mockup.png"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  asChild
+                  variant="outline"
+                  className="w-full sm:w-auto h-14 px-8 rounded-full text-lg border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-300 hover:text-white transition-all hover:scale-105 hover:border-indigo-500/50"
+                >
+                  <a href="https://drive.google.com/file/d/1PcG0WcCJ5i0Kszxn5N_QtN4WbV4KDhhM/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+                    <Play className="mr-2 h-5 w-5 text-indigo-400" /> Watch Demo
+                  </a>
+                </Button>
               </div>
 
               <div className="pt-8 flex items-center justify-center lg:justify-start gap-8 opacity-60 grayscale hover:grayscale-0 transition-all">
